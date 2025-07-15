@@ -12,7 +12,7 @@ class APIService {
             URLQueryItem(name: "departure_at", value: month),
             URLQueryItem(name: "one_way", value: "true"),
             URLQueryItem(name: "sorting", value: "price"),
-            URLQueryItem(name: "limit", value: "10"),
+            URLQueryItem(name: "limit", value: "30"),
             URLQueryItem(name: "token", value: token)
         ]
 
@@ -35,6 +35,37 @@ class APIService {
                 } else {
                     completion(.failure(URLError(.cannotParseResponse)))
                 }
+            } catch {
+                completion(.failure(error))
+            }
+        }.resume()
+    }
+    
+    func fetchCitySuggestions(query: String, completion: @escaping (Result<[CitySuggestion], Error>) -> Void) {
+        var components = URLComponents(string: "https://autocomplete.travelpayouts.com/places2")!
+        components.queryItems = [
+            URLQueryItem(name: "term", value: query),
+            URLQueryItem(name: "types[]", value: "city")
+        ]
+
+        guard let url = components.url else {
+            return
+        }
+
+        URLSession.shared.dataTask(with: url) { data, response, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+
+            guard let data = data else {
+                completion(.failure(NSError(domain: "", code: 0)))
+                return
+            }
+
+            do {
+                let suggestions = try JSONDecoder().decode([CitySuggestion].self, from: data)
+                completion(.success(suggestions))
             } catch {
                 completion(.failure(error))
             }
