@@ -6,3 +6,4 @@ struct CitySuggestion: Decodable, Identifiable {
     let code: String
     let country_name: String
 }
+

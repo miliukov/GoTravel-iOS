@@ -3,7 +3,9 @@ import SwiftUI
 
 class FlightSearchViewModel: ObservableObject {
     @Published var origin = "MOW"
+    @Published var origin_airport = ""
     @Published var destination = "LON"
+    @Published var destination_airport = ""
     @Published var month = "2025-11" // YYYY-MM
     @Published var isLoading = false
     @Published var flights = [PriceData]()
@@ -17,12 +19,14 @@ class FlightSearchViewModel: ObservableObject {
     func search() {
         guard !origin.isEmpty, !destination.isEmpty, !month.isEmpty else { return }
         isLoading = true
-        service.fetchFlights(origin: origin, destination: destination, month: month) { [weak self] res in
-            DispatchQueue.main.async {
-                self?.isLoading = false
-                switch res {
-                case .success(let data): self?.flights = data
-                case .failure(let err): print(err)
+        if selectedTransport == .plane {
+            service.fetchFlights(origin: origin, destination: destination, month: month) { [weak self] res in
+                DispatchQueue.main.async {
+                    self?.isLoading = false
+                    switch res {
+                    case .success(let data): self?.flights = data
+                    case .failure(let err): print(err)
+                    }
                 }
             }
         }
@@ -69,6 +73,40 @@ class FlightSearchViewModel: ObservableObject {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM"
         self.month = formatter.string(from: selectedDate)
+    }
+    
+    func formatDeparture(_ isoString: String) -> (date: String, time: String)? {
+        let isoFormatter = ISO8601DateFormatter()
+        isoFormatter.formatOptions = [.withInternetDateTime, .withColonSeparatorInTimeZone]
+
+        guard let date = isoFormatter.date(from: isoString) else { return nil }
+
+        let timeZoneString = String(isoString.suffix(6))
+        
+        func secondsFromGMT(_ tz: String) -> Int? {
+            guard tz.count == 6 else { return nil }
+            let sign = tz.first == "+" ? 1 : -1
+            let hours = Int(tz.dropFirst().prefix(2)) ?? 0
+            let minutes = Int(tz.suffix(2)) ?? 0
+            return sign * (hours * 3600 + minutes * 60)
+        }
+        
+        let timeZone = TimeZone(secondsFromGMT: secondsFromGMT(timeZoneString) ?? 0) ?? .current
+
+        let timeFormatter = DateFormatter()
+        timeFormatter.dateFormat = "HH:mm"
+        timeFormatter.locale = Locale(identifier: "ru_RU")
+        timeFormatter.timeZone = timeZone
+
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "d MMM"
+        dateFormatter.locale = Locale(identifier: "ru_RU")
+        dateFormatter.timeZone = timeZone
+
+        return (
+            date: dateFormatter.string(from: date),
+            time: timeFormatter.string(from: date)
+        )
     }
     
     enum TransportType: String, CaseIterable {

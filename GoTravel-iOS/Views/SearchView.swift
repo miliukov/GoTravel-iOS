@@ -49,25 +49,23 @@ struct SearchView: View {
                         .font(.custom("Helvetica", size: 25))
                     
                     Button("Search") {
-                        showResults = true
                         vm.updateMonthFromSelectedDate()
                         vm.search()
+                        showResults = true
                     }
                         .buttonStyle(.borderedProminent)
                         .font(.custom("Helvetica", size: 25))
                 }
                 
                 if vm.isLoading { ProgressView() }
-                
-                List(vm.flights) { f in
-                    VStack(alignment: .leading) {
-                        Text("\(f.departure_at) — \(f.origin) → \(f.destination)")
-                        Text("Цена: \(f.price) ₽")
-                    }
-                }
+
+                Spacer()
             }
             .padding()
             .navigationTitle("GoTravel")
+            .navigationDestination(isPresented: $showResults) {
+                TicketsView(vm: vm)
+            }
         }
     }
 }
@@ -81,8 +79,8 @@ struct OriginInputView: View {
                 .font(.custom("Helvetica", size: 30))
                 .foregroundStyle(.white)
                 .padding(5)
-                .onChange(of: vm.origin) {
-                    vm.suggestOrigin(for: $0)
+                .onChange(of: vm.origin) { oldValue, newValue in
+                    vm.suggestOrigin(for: newValue)
                 }
                 .autocorrectionDisabled(true)
 
@@ -113,8 +111,8 @@ struct DestinationInputView: View {
                 .font(.custom("Helvetica", size: 30))
                 .foregroundStyle(.white)
                 .padding(5)
-                .onChange(of: vm.destination) {
-                    vm.suggestDestination(for: $0)
+                .onChange(of: vm.destination) { oldValue, newValue in
+                    vm.suggestDestination(for: newValue)
                 }
                 .autocorrectionDisabled(true)
             VStack(alignment: .leading) {
